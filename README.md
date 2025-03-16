@@ -21,7 +21,7 @@ This project is a **EUR/USD Price Predictor** that utilizes machine learning tec
 
 ## 📊 Model Training
 To see how the model was trained, check the training phase on **Kaggle**:  
-🔗 [Click here to view on Kaggle](#) *(Replace with actual link)*
+🔗 [Click here to view on Kaggle](https://www.kaggle.com/code/ahmadrezagholami2001/forex-predictor-with-99-score-ensemble-learning)
 
 ---
 
