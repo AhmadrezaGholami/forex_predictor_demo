@@ -17,7 +17,6 @@ app.add_middleware(
 # Load Models
 MODEL_PATHS = {
     "DT": "Models/dt.pkl",
-    "RF": "Models/rf.pkl",
     "LGBM": "Models/lgbm.pkl",
 }
 
@@ -32,7 +31,7 @@ class ForexInput(BaseModel):
     low: float
     close: float
     tick_volume: int
-    model_choice: str  # "DT", "RF", "LGBM"
+    model_choice: str  # "DT", "LGBM"
 
 # Feature Engineering function
 def feature_engineering(data: dict):
@@ -62,7 +61,7 @@ def predict(data: ForexInput):
     # Select models based on user choice
     model_choice = data.model_choice
     if model_choice not in models:
-        return {"error": "Invalid model choice. Choose from: DT, RF, LGBM"}
+        return {"error": "Invalid model choice. Choose from: DT, LGBM"}
     
     model = models[model_choice]
 
