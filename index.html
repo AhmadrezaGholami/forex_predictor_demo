@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EUR/USD Price Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-bg: #34495e;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+        
+        .btn-secondary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #1e2b38;
+            border-color: #1e2b38;
+        }
+        
+        .result-card {
+            display: none;
+            background-color: white;
+        }
+        
+        .result-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        
+        .currency-pair {
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+        
+        .time-display {
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+        
+        .model-badge {
+            background-color: var(--primary-color);
+        }
+        
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .data-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 10px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+        }
+        
+        .toast {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-currency-exchange me-2"></i>
+                Forex Predictor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Predictor</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <div class="row mb-4">
+            <div class="col-md-12 text-center">
+                <h1 class="display-4 mb-3">EUR/USD Price Predictor</h1>
+                <p class="lead">Predict the next candle close price on a 5-minute timeframe</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Chart Section -->
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Price Chart
+                        </h5>
+                        <span class="badge bg-light text-dark time-display" id="lastCandleTime">Loading...</span>
+                    </div>
+                    <div class="card-body position-relative">
+                        <div class="data-loading" id="chartLoading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <span class="currency-pair">EUR/USD</span>
+                                <span class="badge bg-secondary">5m</span>
+                            </div>
+                            <div id="lastPrice" class="fw-bold"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Form -->
+            <div class="col-lg-4">
+                <div class="card" id="formCard">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-input-cursor-text me-2"></i>
+                            Prediction Inputs
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-actions">
+                            <button type="button" id="loadLastCandle" class="btn btn-secondary w-100">
+                                <i class="bi bi-arrow-clockwise me-2"></i>
+                                Load Last Candle Data
+                            </button>
+                        </div>
+                        <form id="predictionForm">
+                            <div class="mb-3">
+                                <label for="time" class="form-label">Time</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+                                    <input type="text" class="form-control" id="time" placeholder="YYYY-MM-DD HH:MM:SS" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="open" class="form-label">Open Price</label>
+                                <input type="number" class="form-control" id="open" step="0.00001" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="high" class="form-label">High Price</label>
+                                <input type="number" class="form-control" id="high" step="0.00001" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="low" class="form-label">Low Price</label>
+                                <input type="number" class="form-control" id="low" step="0.00001" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="close" class="form-label">Close Price</label>
+                                <input type="number" class="form-control" id="close" step="0.00001" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="tick_volume" class="form-label">Tick Volume</label>
+                                <input type="number" class="form-control" id="tick_volume" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="model_choice" class="form-label">Model Choice</label>
+                                <select class="form-select" id="model_choice" required>
+                                    <option value="DT">Decision Tree (DT)</option>
+                                    <option value="RF">Random Forest (RF)</option>
+                                    <option value="LGBM">LightGBM (LGBM)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-lightning-charge me-2"></i>
+                                Predict Next Close
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card result-card" id="resultCard">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Prediction Result
+                        </h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <span class="badge model-badge" id="modelUsed"></span>
+                            <span class="badge bg-info" id="timeframe">5m Timeframe</span>
+                        </div>
+                        <h3>Predicted Next Close Price</h3>
+                        <div class="result-value" id="predictedValue">1.0825</div>
+                        <div class="mt-3">
+                            <span class="badge bg-light text-dark" id="predictionTime"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div class="text-center mt-4 loading" id="loadingIndicator">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Processing prediction...</p>
+                </div>
+
+                <!-- Error Alert -->
+                <div class="alert alert-danger mt-4 d-none" id="errorAlert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="errorMessage"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">© 2025 Forex Predictor | EUR/USD 5m Prediction Tool</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Initialize chart
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        let priceData = [];
+        let labels = [];
+        let candleData = [];
+        
+        // Initialize chart with empty data first
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'EUR/USD',
+                    data: priceData,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#3498db',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `Price: ${parseFloat(context.raw).toFixed(5)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(5);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Function to show toast notification
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="bi bi-check-circle me-2"></i>${message}`;
+            toastContainer.appendChild(toast);
+            
+            // Trigger reflow to enable animation
+            toast.offsetHeight;
+            
+            // Show the toast
+            toast.classList.add('show');
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Function to load last candle data into form
+        function loadLastCandleData() {
+            if (candleData.length === 0) {
+                alert("No candle data available yet. Please wait for data to load.");
+                return;
+            }
+            
+            const lastCandle = candleData[candleData.length - 1];
+            
+            // Fill form with the most recent candle data
+            document.getElementById('open').value = parseFloat(lastCandle.open).toFixed(5);
+            document.getElementById('high').value = parseFloat(lastCandle.high).toFixed(5);
+            document.getElementById('low').value = parseFloat(lastCandle.low).toFixed(5);
+            document.getElementById('close').value = parseFloat(lastCandle.close).toFixed(5);
+            document.getElementById('tick_volume').value = Math.floor(Math.random() * 1000) + 500; // Random tick volume as it's not provided
+            
+            // Set the datetime picker to the next 5-minute interval
+            const nextCandleTime = new Date(lastCandle.datetime);
+            nextCandleTime.setMinutes(nextCandleTime.getMinutes() + 5);
+            
+            // Update the flatpickr instance with the new date
+            flatpickrInstance.setDate(formatDateTime(nextCandleTime));
+            
+            // Show toast notification
+            showToast('Last candle data loaded!');
+        }
+        
+        // Fetch real data from Twelve Data API
+        async function fetchForexData() {
+            try {
+                const response = await fetch('https://api.twelvedata.com/time_series?apikey=63b840a9b23044cbadeb43163291d4df&interval=5min&symbol=EUR/USD&outputsize=20&format=JSON');
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Process the data
+                candleData = data.values;
+                
+                // Reverse the array to get chronological order (oldest to newest)
+                candleData.reverse();
+                
+                // Extract close prices and labels for the chart
+                priceData = candleData.map(candle => parseFloat(candle.close));
+                labels = candleData.map(candle => {
+                    const date = new Date(candle.datetime);
+                    return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                });
+                
+                // Update the chart
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = priceData;
+                chart.update();
+                
+                // Update last price display
+                document.getElementById('lastPrice').textContent = priceData[priceData.length - 1].toFixed(5);
+                
+                // Update last candle time display
+                const lastCandle = candleData[candleData.length - 1];
+                document.getElementById('lastCandleTime').textContent = `Last Candle: ${lastCandle.datetime}`;
+                
+                // Load the last candle data into the form automatically
+                loadLastCandleData();
+                
+                // Hide loading indicator
+                document.getElementById('chartLoading').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error fetching forex data:', error);
+                document.getElementById('errorAlert').classList.remove('d-none');
+                document.getElementById('errorMessage').textContent = 'Failed to load forex data: ' + error.message;
+                document.getElementById('chartLoading').style.display = 'none';
+            }
+        }
+        
+        // Format date time for the input field
+        function formatDateTime(date) {
+            return date.getFullYear() + '-' + 
+                   padZero(date.getMonth() + 1) + '-' + 
+                   padZero(date.getDate()) + ' ' + 
+                   padZero(date.getHours()) + ':' + 
+                   padZero(date.getMinutes()) + ':' + 
+                   padZero(date.getSeconds());
+        }
+        
+        function padZero(num) {
+            return num.toString().padStart(2, '0');
+        }
+        
+        // Initialize datetime picker
+        const flatpickrInstance = flatpickr("#time", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i:S",
+            time_24hr: true,
+            enableSeconds: true,
+            defaultDate: formatDateTime(new Date()),
+            minuteIncrement: 1
+        });
+        
+        // Add event listener for the Load Last Candle button
+        document.getElementById('loadLastCandle').addEventListener('click', loadLastCandleData);
+        
+        // Fetch forex data on page load
+        fetchForexData();
+        
+        // Form submission
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show loading indicator
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('resultCard').style.display = 'none';
+            document.getElementById('errorAlert').classList.add('d-none');
+            
+            // Get form data
+            const formData = {
+                time: document.getElementById('time').value,
+                open: parseFloat(document.getElementById('open').value),
+                high: parseFloat(document.getElementById('high').value),
+                low: parseFloat(document.getElementById('low').value),
+                close: parseFloat(document.getElementById('close').value),
+                tick_volume: parseInt(document.getElementById('tick_volume').value),
+                model_choice: document.getElementById('model_choice').value
+            };
+            
+            try {
+                // Call the API with the updated endpoint
+                const response = await fetch('http://127.0.0.1:8000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Hide loading indicator
+                document.getElementById('loadingIndicator').style.display = 'none';
+                
+                // Show result
+                document.getElementById('resultCard').style.display = 'block';
+                document.getElementById('predictedValue').textContent = result.predicted_close.toFixed(5);
+                document.getElementById('modelUsed').textContent = `Model: ${formData.model_choice}`;
+                document.getElementById('predictionTime').textContent = `Prediction for ${formData.time}`;
+                
+                // Add the prediction to the chart
+                priceData.push(result.predicted_close);
+                priceData.shift();
+                
+                const nextTime = new Date(formData.time);
+                nextTime.setMinutes(nextTime.getMinutes() + 5);
+                labels.push(nextTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+                labels.shift();
+                
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = priceData;
+                chart.update();
+                
+            } catch (error) {
+                // Hide loading indicator
+                document.getElementById('loadingIndicator').style.display = 'none';
+                
+                // Show error
+                document.getElementById('errorAlert').classList.remove('d-none');
+                document.getElementById('errorMessage').textContent = error.message || 'Failed to get prediction';
+                console.error('Error:', error);
+            }
+        });
+        
+        // Refresh forex data every 5 minutes
+        setInterval(fetchForexData, 300000);
+    </script>
+</body>
+</html>
