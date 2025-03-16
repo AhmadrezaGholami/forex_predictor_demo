@@ -28,7 +28,7 @@ To see how the model was trained, check the training phase on **Kaggle**:
 ## 🛠 Tech Stack
 - **Frontend:** HTML, CSS, Bootstrap, Flatpickr
 - **Backend:** Flask / FastAPI
-- **Machine Learning:** Scikit-learn, TensorFlow/PyTorch (Specify your ML library)
+- **Machine Learning:** Scikit-learn, DecisionTreeRegressor, LGBMRegressor
 - **Data Visualization:** Matplotlib, Plotly
 
 ---
