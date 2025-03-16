@@ -1,4 +1,4 @@
-# 🚀 EUR/USD Price Predictor
+# 🚀 EUR/USD Price Predictor with 99% Score
 
 ![Status](https://img.shields.io/badge/Status-Demo-orange) ![License](https://img.shields.io/badge/License-MIT-blue) ![Contributions](https://img.shields.io/badge/Contributions-Welcome-brightgreen)
 
